@@ -1,0 +1,9 @@
+node_modules/
+/.expo/
+/.vscode/
+dist/
+build/
+*.log
+web/node_modules/
+/.expo-shared/
+*.tgz
