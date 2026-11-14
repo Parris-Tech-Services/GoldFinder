@@ -36,6 +36,7 @@ export default function MapScreen() {
   const mapInstanceRef = useRef(null);
   const [mapboxToken, setMapboxToken] = useState(null);
   const [styleReady, setStyleReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
   const DEFAULT_STYLE = 'osm';
   const FALLBACK_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
@@ -118,12 +119,18 @@ export default function MapScreen() {
     const container = mapRef.current;
     if (!container) return;
     if (!mapInstanceRef.current) {
-      mapInstanceRef.current = new maplibregl.Map({
-        container,
-        style,
-        center,
-        zoom: 10
-      });
+      try {
+        mapInstanceRef.current = new maplibregl.Map({
+          container,
+          style,
+          center,
+          zoom: 10
+        });
+      } catch (error) {
+        // Unsupported/disabled WebGL must not unmount the entire React app.
+        setMapError(true);
+        return;
+      }
       mapInstanceRef.current.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
       mapInstanceRef.current.on('error', (e) => {
         try {
@@ -334,6 +341,9 @@ export default function MapScreen() {
       <View style={styles.map} ref={mapRef} />
 
       <View style={styles.controls}>
+        <Text style={styles.title}>Riverina Gold</Text>
+        <Text style={styles.demoNote}>Demo data — not verified prospecting locations.</Text>
+        <Text style={styles.demoNote}>Session pins: {mines.filter(m => m.type === 'user').length} · reload clears these pins</Text>
         <View style={styles.row}>
           <TouchableOpacity style={styles.btn} onPress={toggleMapType}>
             <Text style={styles.btnText}>{mapType === 'standard' ? 'Satellite' : 'Topographic'}</Text>
@@ -344,6 +354,14 @@ export default function MapScreen() {
             <Switch value={geologyLayer} onValueChange={setGeologyLayer} thumbColor="#d6c15a" trackColor={{ true: '#1b4720' }} />
           </View>
         </View>
+
+        {mapError && (
+          <View style={styles.fallback}>
+            <Text style={styles.title}>Map unavailable in this browser</Text>
+            <Text style={styles.demoNote}>WebGL is unavailable. You can still inspect the demo locations and add session pins at the default map centre.</Text>
+            {mines.map(m => <Text key={m.id} style={styles.demoNote}>{m.name} · {m.latitude.toFixed(3)}, {m.longitude.toFixed(3)}</Text>)}
+          </View>
+        )}
 
         <View style={styles.row}>
           <TouchableOpacity style={styles.action} onPress={() => dropPin('Found Gold')}>
@@ -382,6 +400,9 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
+  title: { color: '#ffd166', fontSize: 19, fontWeight: '700', marginBottom: 4 },
+  demoNote: { color: '#dfeee0', marginBottom: 6 },
+  fallback: { backgroundColor: '#0f2b18', padding: 14, borderRadius: 8, marginTop: 8 },
   container: { flex: 1, backgroundColor: '#07110a' },
   map: { flex: 1 },
   controls: { position: 'absolute', top: 12, left: 12, right: 12, padding: 8 },
